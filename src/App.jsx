@@ -50,7 +50,6 @@ function App() {
             <div className="text-2xl font-bold text-primary">
               <span className="text-primary">Tic</span>
               <span className="text-secondary">Tac</span>
-              <span className="text-secondary">Tac</span>
               <span className="text-accent">ToePro</span>
             </div>
           </div>
