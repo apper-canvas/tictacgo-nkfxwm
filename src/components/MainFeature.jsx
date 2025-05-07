@@ -12,34 +12,98 @@ const MainFeature = ({ isDarkMode, onGameEnd }) => {
   const InfoIcon = getIcon('Info');
   const RotateCcwIcon = getIcon('RotateCcw');
   const ZapIcon = getIcon('Zap');
+  const TriangleIcon = getIcon('Triangle');
+  const SquareIcon = getIcon('Square');
+  const SettingsIcon = getIcon('Settings');
+  const UsersIcon = getIcon('Users');
+  const LayoutGridIcon = getIcon('LayoutGrid');
+
+  // Game configuration
+  const [gridSize, setGridSize] = useState(3);
+  const [playerCount, setPlayerCount] = useState(2);
+  const [showSettings, setShowSettings] = useState(false);
+  
+  // Player definitions
+  const playerSymbols = ['X', 'O', 'triangle', 'square'];
+  const playerIcons = [
+    <XIcon className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-primary" />,
+    <CircleIcon className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-secondary" />,
+    <TriangleIcon className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-accent" />,
+    <SquareIcon className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-green-500" />
+  ];
+  const playerColors = [
+    'text-primary',
+    'text-secondary',
+    'text-accent',
+    'text-green-500'
+  ];
+  const playerBgColors = [
+    'bg-primary/20 text-primary',
+    'bg-secondary/20 text-secondary',
+    'bg-accent/20 text-accent',
+    'bg-green-500/20 text-green-500'
+  ];
   
   // Game state
-  const [board, setBoard] = useState(Array(9).fill(null));
-  const [isXNext, setIsXNext] = useState(true);
+  const [board, setBoard] = useState(Array(gridSize * gridSize).fill(null));
+  const [currentPlayer, setCurrentPlayer] = useState(0);
   const [winner, setWinner] = useState(null);
   const [winningLine, setWinningLine] = useState([]);
   const [gameHistory, setGameHistory] = useState([]);
   const [currentMove, setCurrentMove] = useState(0);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   
-  // Winning combinations
-  const lines = [
-    [0, 1, 2], // top row
-    [3, 4, 5], // middle row
-    [6, 7, 8], // bottom row
-    [0, 3, 6], // left column
-    [1, 4, 7], // middle column
-    [2, 5, 8], // right column
-    [0, 4, 8], // diagonal from top left
-    [2, 4, 6], // diagonal from top right
-  ];
+  // Update board when grid size changes
+  useEffect(() => {
+    resetGame();
+  }, [gridSize, playerCount]);
+  
+  // Generate winning combinations for current grid size
+  const getWinningCombinations = () => {
+    const lines = [];
+    const size = gridSize;
+    const winLength = Math.min(5, size); // Win requires 5-in-a-row or full grid size
+    
+    // Rows
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c <= size - winLength; c++) {
+        lines.push(Array.from({length: winLength}, (_, i) => r * size + (c + i)));
+      }
+    }
+    
+    // Columns
+    for (let c = 0; c < size; c++) {
+      for (let r = 0; r <= size - winLength; r++) {
+        lines.push(Array.from({length: winLength}, (_, i) => (r + i) * size + c));
+      }
+    }
+    
+    // Diagonals (top-left to bottom-right)
+    for (let r = 0; r <= size - winLength; r++) {
+      for (let c = 0; c <= size - winLength; c++) {
+        lines.push(Array.from({length: winLength}, (_, i) => (r + i) * size + (c + i)));
+      }
+    }
+    
+    // Diagonals (top-right to bottom-left)
+    for (let r = 0; r <= size - winLength; r++) {
+      for (let c = size - 1; c >= winLength - 1; c--) {
+        lines.push(Array.from({length: winLength}, (_, i) => (r + i) * size + (c - i)));
+      }
+    }
+    
+    return lines;
+  };
   
   // Check for winner
   const calculateWinner = (squares) => {
+    const lines = getWinningCombinations();
     for (let i = 0; i < lines.length; i++) {
-      const [a, b, c] = lines[i];
-      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-        return { winner: squares[a], line: [a, b, c] };
+      const line = lines[i];
+      const firstSquare = squares[line[0]];
+      
+      if (firstSquare && line.every(index => squares[index] === firstSquare)) {
+        return { winner: firstSquare, line };
       }
     }
     // Check for draw
@@ -56,19 +120,19 @@ const MainFeature = ({ isDarkMode, onGameEnd }) => {
     
     // Create new board with the move
     const newBoard = [...board];
-    newBoard[i] = isXNext ? 'X' : 'O';
+    newBoard[i] = playerSymbols[currentPlayer];
     
     // Update history to current move
     const newHistory = gameHistory.slice(0, currentMove + 1);
     newHistory.push({
       squares: newBoard,
       position: i,
-      player: isXNext ? 'X' : 'O'
+      player: playerSymbols[currentPlayer]
     });
     
     // Update state
     setBoard(newBoard);
-    setIsXNext(!isXNext);
+    setCurrentPlayer((currentPlayer + 1) % playerCount);
     setGameHistory(newHistory);
     setCurrentMove(newHistory.length - 1);
     
@@ -86,7 +150,7 @@ const MainFeature = ({ isDarkMode, onGameEnd }) => {
         // Call onGameEnd callback with result
         if (onGameEnd) onGameEnd('draw');
       } else {
-        toast.success(`Player ${result.winner} wins the game!`, {
+        toast.success(`Player ${getPlayerNameBySymbol(result.winner)} wins the game!`, {
           icon: <AwardIcon className="w-5 h-5" />
         });
         // Call onGameEnd callback with result
@@ -97,8 +161,8 @@ const MainFeature = ({ isDarkMode, onGameEnd }) => {
   
   // Reset game
   const resetGame = () => {
-    setBoard(Array(9).fill(null));
-    setIsXNext(true);
+    setBoard(Array(gridSize * gridSize).fill(null));
+    setCurrentPlayer(0);
     setWinner(null);
     setWinningLine([]);
     setGameHistory([]);
@@ -113,7 +177,7 @@ const MainFeature = ({ isDarkMode, onGameEnd }) => {
     setCurrentMove(move);
     const historicalBoard = gameHistory[move].squares;
     setBoard(historicalBoard);
-    setIsXNext(move % 2 === 0);
+    setCurrentPlayer(move % playerCount);
     
     // Recalculate winner for this board state
     const result = calculateWinner(historicalBoard);
@@ -126,20 +190,38 @@ const MainFeature = ({ isDarkMode, onGameEnd }) => {
     if (winner === 'draw') {
       return "Game ended in a draw!";
     } else if (winner) {
-      return `Winner: Player ${winner}`;
+      return `Winner: Player ${getPlayerNameBySymbol(winner)}`;
     } else {
-      return `Next player: ${isXNext ? 'X' : 'O'}`;
+      return `Next player: ${getPlayerNameBySymbol(playerSymbols[currentPlayer])}`;
     }
+  };
+  
+  // Get player name from symbol
+  const getPlayerNameBySymbol = (symbol) => {
+    const index = playerSymbols.indexOf(symbol);
+    return index >= 0 ? `${index + 1} (${symbol})` : symbol;
+  };
+  
+  // Get winner's background color
+  const getWinnerBgColor = () => {
+    if (winner === 'draw') {
+      return 'bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300';
+    }
+    
+    if (winner) {
+      const winnerIndex = playerSymbols.indexOf(winner);
+      if (winnerIndex >= 0) {
+        return playerBgColors[winnerIndex];
+      }
+    }
+    return 'bg-surface-100 dark:bg-surface-800 text-surface-700 dark:text-surface-300';
   };
   
   // Render cell content
   const renderCellContent = (value) => {
     if (!value) return null;
-    
-    return value === 'X' ? (
-      <XIcon className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-primary" />
-    ) : (
-      <CircleIcon className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-secondary" />
+    const index = playerSymbols.indexOf(value);
+    return index >= 0 ? playerIcons[index] : null;
     );
   };
   
@@ -148,29 +230,108 @@ const MainFeature = ({ isDarkMode, onGameEnd }) => {
     return winningLine.includes(i);
   };
 
+  // Handle grid size change
+  const changeGridSize = (size) => {
+    setGridSize(size);
+    setShowSettings(false);
+  };
+  
+  // Handle player count change
+  const changePlayerCount = (count) => {
+    setPlayerCount(Math.min(count, 4));
+    setShowSettings(false);
+  };
+
   return (
-    <div className="max-w-md mx-auto">
-      <div className="mb-6 flex justify-between items-center">
-        <div className="text-xl font-bold">
-          <span className={`${isXNext && !winner ? 'text-primary font-extrabold scale-110 inline-block' : 'text-surface-600 dark:text-surface-400'} transition-all duration-300`}>
-            Player X
-          </span>
-          <span className="mx-2 text-surface-400">vs</span>
-          <span className={`${!isXNext && !winner ? 'text-secondary font-extrabold scale-110 inline-block' : 'text-surface-600 dark:text-surface-400'} transition-all duration-300`}>
-            Player O
-          </span>
+    <div className="max-w-2xl mx-auto">
+      <div className="mb-6 flex flex-wrap justify-between items-center gap-4">
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setShowSettings(!showSettings)}
+            className="neu-button flex items-center gap-1"
+          >
+            <SettingsIcon className="w-4 h-4" />
+            <span>Settings</span>
+          </button>
+          
+          <button 
+            onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+            className="neu-button flex items-center gap-1"
+          >
+            <RotateCcwIcon className="w-4 h-4" />
+            <span>{isHistoryOpen ? 'Hide History' : 'Game History'}</span>
+          </button>
         </div>
-        
-        <button 
-          onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-          className="text-sm flex items-center gap-1 neu-button"
+
+        <div className="flex-grow"></div>
+
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={resetGame}
+          className="btn-primary flex items-center gap-2"
         >
-          <RotateCcwIcon className="w-4 h-4" />
-          {isHistoryOpen ? 'Hide History' : 'Game History'}
-        </button>
+          <RefreshCwIcon className="w-5 h-5" />
+          <span>New Game</span>
+        </motion.button>
       </div>
       
       <AnimatePresence>
+        {showSettings && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-6 bg-surface-100 dark:bg-surface-800 rounded-xl p-4 overflow-hidden"
+          >
+            <h3 className="font-medium mb-3">Game Settings</h3>
+            
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <LayoutGridIcon className="w-4 h-4" />
+                <h4 className="text-sm font-medium">Grid Size</h4>
+              </div>
+              <div className="flex gap-2">
+                {[3, 5, 7].map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => changeGridSize(size)}
+                    className={`grid-size-option ${
+                      gridSize === size
+                        ? 'bg-primary/10 border-primary text-primary'
+                        : 'bg-surface-200/50 dark:bg-surface-700/50 border-surface-200 dark:border-surface-700'
+                    }`}
+                  >
+                    {size}×{size}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <UsersIcon className="w-4 h-4" />
+                <h4 className="text-sm font-medium">Players</h4>
+              </div>
+              <div className="flex gap-2">
+                {[2, 3, 4].map((count) => (
+                  <button
+                    key={count}
+                    onClick={() => changePlayerCount(count)}
+                    className={`grid-size-option ${
+                      playerCount === count
+                        ? 'bg-primary/10 border-primary text-primary'
+                        : 'bg-surface-200/50 dark:bg-surface-700/50 border-surface-200 dark:border-surface-700'
+                    }`}
+                  >
+                    {count} Players
+                  </button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      
         {isHistoryOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
@@ -209,24 +370,47 @@ const MainFeature = ({ isDarkMode, onGameEnd }) => {
         )}
       </AnimatePresence>
       
+      <div className="mb-6">
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-3">
+          {Array.from({ length: playerCount }).map((_, index) => (
+            <div 
+              key={index}
+              className={`flex items-center gap-2 py-2 px-4 rounded-lg transition-all duration-300 ${
+                currentPlayer === index && !winner 
+                  ? 'bg-surface-200 dark:bg-surface-700 scale-105 shadow-soft' 
+                  : ''
+              }`}
+            >
+              <div className={`${playerColors[index]}`}>
+                {playerIcons[index]}
+              </div>
+              <span className={`font-medium ${
+                currentPlayer === index && !winner
+                  ? playerColors[index] + ' font-bold'
+                  : 'text-surface-600 dark:text-surface-400'
+              }`}>
+                Player {index + 1}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      
       <div className="mb-4">
         <motion.div 
           animate={{ 
             scale: winner ? [1, 1.05, 1] : 1,
           }}
           transition={{ duration: 1, repeat: winner ? Infinity : 0, repeatType: "reverse" }}
-          className={`text-center py-3 px-4 rounded-xl mb-4 font-bold text-lg
-                    ${winner === 'X' ? 'bg-primary/20 text-primary' : 
-                      winner === 'O' ? 'bg-secondary/20 text-secondary' : 
-                      winner === 'draw' ? 'bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300' : 
-                      'bg-surface-100 dark:bg-surface-800 text-surface-700 dark:text-surface-300'}`}
+          className={`text-center py-3 px-4 rounded-xl mb-4 font-bold text-lg ${getWinnerBgColor()}`}
         >
           {winner && <AwardIcon className="inline-block mr-2 mb-1 w-5 h-5" />}
           {getStatus()}
         </motion.div>
       </div>
       
-      <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-6">
+      <div className={`grid grid-cols-${gridSize} gap-2 sm:gap-3 md:gap-4 mb-6`} 
+           style={{ gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` }}>
         {board.map((cell, i) => (
           <motion.button
             key={i}
@@ -246,7 +430,7 @@ const MainFeature = ({ isDarkMode, onGameEnd }) => {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.5 }}
                   transition={{ duration: 0.3 }}
-                  className={`${cell === 'X' ? 'tic-cell-x' : 'tic-cell-o'}`}
+                  className={`tic-cell-${cell.toLowerCase()}`}
                 >
                   {renderCellContent(cell)}
                 </motion.div>
@@ -255,20 +439,11 @@ const MainFeature = ({ isDarkMode, onGameEnd }) => {
           </motion.button>
         ))}
       </div>
-      
-      <div className="flex justify-center">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={resetGame}
-          className="btn-primary flex items-center gap-2"
-        >
-          <RefreshCwIcon className="w-5 h-5" />
-          <span>New Game</span>
-        </motion.button>
-      </div>
-      
-      <motion.div 
+       
+      <motion.div
+        key={gridSize} 
+        variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
+        initial="hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
@@ -277,7 +452,7 @@ const MainFeature = ({ isDarkMode, onGameEnd }) => {
         <div className="flex items-start gap-2">
           <ZapIcon className="w-5 h-5 text-accent mt-0.5 flex-shrink-0" />
           <div>
-            <span className="font-medium">Pro Tip:</span> The first player to place three of their marks in a horizontal, vertical, or diagonal row wins the game. Try to block your opponent while setting up your own winning line!
+            <span className="font-medium">Pro Tip:</span> The first player to place five of their marks in a horizontal, vertical, or diagonal row wins the game (or all marks in a row for smaller grids). With more players, focus on both blocking others and creating your own opportunities!
           </div>
         </div>
       </motion.div>
