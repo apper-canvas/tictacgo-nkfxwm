@@ -222,7 +222,6 @@ const MainFeature = ({ isDarkMode, onGameEnd }) => {
     if (!value) return null;
     const index = playerSymbols.indexOf(value);
     return index >= 0 ? playerIcons[index] : null;
-    );
   };
   
   // Is cell in winning line
