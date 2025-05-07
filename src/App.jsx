@@ -52,6 +52,7 @@ function App() {
               <span className="text-secondary">Tac</span>
               <span className="text-secondary">Tac</span>
               <span className="text-accent">ToePro</span>
+            </div>
           </div>
           <motion.button
             whileHover={{ scale: 1.1 }}
