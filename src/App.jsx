@@ -50,8 +50,8 @@ function App() {
             <div className="text-2xl font-bold text-primary">
               <span className="text-primary">Tic</span>
               <span className="text-secondary">Tac</span>
-              <span className="text-accent">Go</span>
-            </div>
+              <span className="text-secondary">Tac</span>
+              <span className="text-accent">ToePro</span>
           </div>
           <motion.button
             whileHover={{ scale: 1.1 }}
@@ -78,7 +78,7 @@ function App() {
 
       <footer className="mt-auto py-4 border-t border-surface-200 dark:border-surface-700">
         <div className="container mx-auto px-4 text-center text-surface-500 dark:text-surface-400 text-sm">
-          <p>© {new Date().getFullYear()} TicTacGo - The classic game reimagined</p>
+          <p>© {new Date().getFullYear()} TicTacToePro - The classic game reimagined</p>
         </div>
       </footer>
       

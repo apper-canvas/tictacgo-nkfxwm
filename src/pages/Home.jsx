@@ -32,7 +32,7 @@ const Home = ({ isDarkMode }) => {
       }
       
       if (newStats.xWins + newStats.oWins + newStats.draws === 10) {
-        toast.success("10 games completed! You're a TicTacGo master!", {
+        toast.success("10 games completed! You're a TicTacToePro master!", {
           icon: <TrophyIcon className="w-6 h-6" />
         });
       }
@@ -51,10 +51,10 @@ const Home = ({ isDarkMode }) => {
           className="text-center mb-6"
         >
           <h1 className="mb-4 text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-secondary">
-            TicTacGo
+            TicTacToePro
           </h1>
           <p className="text-lg md:text-xl max-w-2xl mx-auto text-surface-600 dark:text-surface-300">
-            The classic Tic Tac Toe game reimagined. Challenge a friend and see who comes out on top!
+            The professional Tic Tac Toe experience reimagined. Challenge a friend and see who comes out on top!
           </p>
         </motion.div>
         
